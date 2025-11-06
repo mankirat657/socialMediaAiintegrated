@@ -3,7 +3,7 @@ import mongoose, { mongo } from "mongoose";
 const commentSchema = new mongoose.Schema(
   {
     comment: {
-      type: stringify,
+      type: String,
       required: true,
     },
     postId: {

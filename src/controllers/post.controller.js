@@ -1,3 +1,4 @@
+import commentModel from "../models/comment.model.js";
 import postModel from "../models/post.model.js";
 import userModel from "../models/user.model.js";
 import { generateContent } from "../service/ai.service.js";
@@ -40,9 +41,11 @@ export const createPost = async (req, res) => {
 export const getPost = async (req, res) => {
   const userId = req.user.id;
   try {
-    const post = await postModel.find({
-      userId: userId,
-    });
+    const post = await postModel
+      .find({
+        userId: userId,
+      })
+      .populate("comments");
     if (!post) {
       return res.status(400).json({
         message: "No post available",
@@ -123,6 +126,92 @@ export const deletePost = async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       message: `Error occurred: ${error.message}`,
+    });
+  }
+};
+export const postComment = async (req, res) => {
+  const { comment } = req.body;
+  const postId = req.params.id;
+  if (!comment) {
+    return res.status(409).json({
+      message: "No comment found",
+    });
+  }
+  if (!postId) {
+    return res.status(409).json({
+      message: "no post found by this id",
+    });
+  }
+  try {
+    const newComment = await commentModel.create({
+      comment: comment,
+      userId: req.user.id,
+      postId: postId,
+    });
+    await postModel.findByIdAndUpdate(
+      postId,
+      {
+        $push: { comments: newComment._id },
+      },
+      { new: true }
+    );
+    res.status(200).json({
+      message: "comment created successfully",
+    });
+  } catch (error) {
+    return res.status(400).json({
+      message: `error occured ${error}`,
+    });
+  }
+};
+export const editComment = async (req, res) => {
+  const commentId = req.params.id;
+  const { comment } = req.body;
+  if (!commentId) {
+    return res.status(409).json({
+      message: " commentId not found",
+    });
+  }
+  if (!comment) {
+    return res.status(409).json({
+      message: " comment not found",
+    });
+  }
+  try {
+    await commentModel.findByIdAndUpdate(
+      {
+        _id: commentId,
+      },
+      {
+        comment: comment,
+      }
+    );
+    res.status(200).json({
+      message: "comment updated successfully",
+    });
+  } catch (error) {
+    return res.status(400).json({
+      message: `error occured ${error}`,
+    });
+  }
+};
+export const deleteComment = async (req, res) => {
+  const commentId = req.params.id;
+  if (!commentId) {
+    return res.status(409).json({
+      message: "no commnet id found",
+    });
+  }
+  try {
+    await commentModel.findByIdAndDelete({
+      _id: commentId,
+    });
+    return res.status(200).json({
+      message: "commment deleted successfully",
+    });
+  } catch (error) {
+    return res.status(400).json({
+      message: `An error occured ${error}`,
     });
   }
 };

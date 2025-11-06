@@ -163,30 +163,34 @@ export const updateUserProfile = async (req, res) => {
 };
 export const getPosts = async (req, res) => {
   const userId = req.params.id;
+
   if (!userId) {
-    return res.status(400).json({
-      message: "User not found",
-    });
+    return res.status(400).json({ message: "User not found" });
   }
+
   try {
-    const user = await userModel
-      .find({
-        _id: userId,
-      })
-      .populate("posts");
+    const user = await userModel.findOne({ _id: userId }).populate({
+      path: "posts",
+      populate: {
+        path: "comments",
+        populate: {
+          path: "userId",
+          select: "username email",
+        },
+      },
+    });
 
     if (!user) {
-      return res.status(409).json({
-        message: "no user found",
-      });
+      return res.status(404).json({ message: "No user found" });
     }
+
     return res.status(200).json({
-      message: "user with posts fetched",
+      message: "User with posts and comments fetched successfully",
       user,
     });
   } catch (error) {
-    return res.status(400).json({
-      message: `error occured ${error}`,
+    return res.status(500).json({
+      message: `Error occurred: ${error}`,
     });
   }
 };
